@@ -10,9 +10,9 @@
 [`calosguilherme/godot-switch-nro`](https://github.com/calosguilherme/godot-switch-nro).
 
 > [!IMPORTANT]
-> **В репозитории нет самой игры.** Здесь только инструменты и документация.
+> **В репозитории только часть.** Здесь только инструменты и документация.
 > Beat Banger и её ресурсы принадлежат **bun fun**. Декомпилированный код,
-> `beat-banger.pck`, папка `data/` и готовый `.nro` **не распространяются**.
+> папка `data/` **не распространяется, её надо достать из официальной версии**.
 > Для сборки нужна легальная копия игры. Проект не связан с bun fun.
 
 ---
@@ -28,8 +28,6 @@
 - **видео** — Theora (`.ogv`) включена; `.webm` из модов конвертируется на ПК;
 - **HOME/сон** — игра ставится на паузу при потере фокуса.
 
-В репозитории лежит то, что можно публиковать: скрипты сборки/экспорта,
-конвертер видео модов и подробная документация (включая карту всех правок).
 
 ## Что в репозитории
 
@@ -65,53 +63,11 @@ beat-banger-switch/
 - ~1.3 ГБ свободного места (`.nro` + `.pck` + `data/`).
 
 **ПК для сборки**
-- Windows + [Godot 4.7.2](https://godotengine.org/) (для импорта и экспорта PCK);
-- WSL1 (Ubuntu) + devkitPro (devkitA64, libnx, switch-mesa) — для сборки движка;
-- ffmpeg с libtheora — только для конвертации видео модов.
 
 ## Быстрый старт
 
-1. Соберите движок (или возьмите готовый ELF из своего билда) —
-   см. [`docs/BUILD.md`](docs/BUILD.md).
-2. Декомпилируйте **свою** копию Beat Banger (GDRE Tools) в папку `game/`.
-3. Перенесите порт-правки по [`docs/PORTING-NOTES.md`](docs/PORTING-NOTES.md).
-4. Экспортируйте PCK:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\scripts\exportar-pck.ps1 `
-       -Projeto .\game -Destino .\out\beat-banger.pck
-   ```
-5. Упакуйте `.nro`:
-   ```bash
-   bash scripts/wsl/finalizar.sh
-   ```
-6. Скопируйте на карту и запускайте в титульном режиме —
-   см. [`docs/INSTALL.md`](docs/INSTALL.md).
-
-## Сборка движка
-
-```bash
-# в WSL1, из корня репозитория
-export GODOT_SRC=$HOME/godot-switch-nro-trabalho/godot
-bash scripts/wsl/build-godot.sh
-bash scripts/wsl/finalizar.sh
-```
-
-Подробности, флаги модулей и время сборки — в [`docs/BUILD.md`](docs/BUILD.md).
-Ключевое: `module_theora_enabled=True`, `module_mbedtls_enabled=True`,
-`module_websocket_enabled=False`, `builtin_certs=False`, `lto=none`, `-j2`.
-
-## Обновление
-
-Сборка состоит из трёх независимых слоёв:
-
-| Слой | Что это | Как обновлять |
-|---|---|---|
-| `data/` | ресурсы из Steam-версии | копированием |
-| `beat-banger.pck` | код игры и ресурсы проекта | переэкспортом PCK |
-| `beat-banger.nro` | движок Godot | только при смене движка/порта |
-
-`dados/` (сохранения, настройки, моды) **никогда не удалять и не перезаписывать**.
-Полная инструкция — [`docs/UPDATING.md`](docs/UPDATING.md).
+скачайте официальную версию beat banger (из неё понадобится папка data)
+далее эту папку нужно поместить по пути SD:\switch\beat-banger\
 
 ## Сохранения, моды, онлайн
 
@@ -136,11 +92,10 @@ bash scripts/wsl/finalizar.sh
 Вылеты: `sdmc:/atmosphere/crash_reports/`.
 Как читать логи и A/B-флаги — [`docs/TESTING.md`](docs/TESTING.md).
 
-## Известные ограничения
+## Ограничения
 
 - разрешение фиксировано 1280×720 (система растягивает в доке);
-- нет ввода текста (экранная клавиатура Switch не подключена);
-- нет вибрации;
+- нет ввода текста (экранная клавиатура Switch не подключена);-
 - Steam, Discord, Workshop, облако — заглушки;
 - игрушки / Intiface (WebSocket) не работают — движок без WebSocket;
 - `OS.shell_open` не работает (кнопки «открыть папку/сайт» молчат);
@@ -151,13 +106,12 @@ bash scripts/wsl/finalizar.sh
 - [Godot Engine](https://godotengine.org/) — MIT;
 - [`calosguilherme/godot-switch-nro`](https://github.com/calosguilherme/godot-switch-nro) — база порта;
 - [devkitPro](https://devkitpro.org/) (devkitA64, libnx, switch-mesa);
+- Open code (помощник по разработке)
 - **bun fun** — за саму игру Beat Banger.
 
 ## Лицензия
 
 Код репозитория (скрипты и документация) — [MIT](LICENSE).
-Игра, её ресурсы и декомпилированный код — собственность bun fun и в репозиторий
-не входят. Подробнее — [NOTICE.md](NOTICE.md).
 
 ---
 
