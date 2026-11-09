@@ -1,0 +1,36 @@
+name: Feature request
+description: Предложить улучшение порта или документации
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему это решит?
+      description: Опишите ситуацию, а не только готовое решение.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Предлагаемое решение
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы, которые вы рассматривали
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Область
+      options:
+        - label: Сохранения
+        - label: Моды
+        - label: Онлайн / HTTPS
+        - label: Видео
+        - label: Сборка / экспорт
+        - label: Документация

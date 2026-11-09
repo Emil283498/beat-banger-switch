@@ -1,0 +1,80 @@
+name: Bug report
+description: Сообщить о вылете или неработающей функции порта
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за отчёт.
+
+        > [!WARNING]
+        > **Не прикрепляйте файлы игры**: `.pck`, `.nro`, `data/`
+        > и сохранения из `dados/`. Достаточно текста логов.
+
+  - type: input
+    id: console
+    attributes:
+      label: Модель консоли
+      placeholder: Switch V2 / Lite / OLED (Mariko) или Erista
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Прошивка и версия Atmosphère
+      placeholder: "например: 18.1.0 / Atmosphère 1.8.0"
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Что именно не работает?
+      options:
+        - Запуск / чёрный экран
+        - Конец уровня / финальное видео
+        - Game Over / Retry / Give up
+        - Сохранения
+        - Моды
+        - Онлайн / HTTPS
+        - Видео (.ogv / .webm)
+        - Другое
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. Запустил в титульном режиме
+        2. Прошёл уровень ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидалось / что произошло на самом деле
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи
+      description: |
+        Вставьте последние строки из `dados/depuracao.log` и `beat-banger.log`.
+        Файлы можно прикрепить, но только текстовые логи — без ресурсов игры.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Чек-лист
+      options:
+        - label: Запускал в титульном режиме (зажать R при запуске игры)
+          required: true
+        - label: У меня есть легальная копия Beat Banger
+          required: true
+        - label: Я не прикреплял файлы игры (.pck, .nro, data/, dados/)
+          required: true

@@ -1,0 +1,52 @@
+# --- Game content and builds: NEVER publish these ---
+game/
+data/
+dados/
+out/
+build/
+disabled_extensions/
+removidos/
+port/
+
+# Packed / compiled artifacts
+*.pck
+*.nro
+*.nsp
+*.xci
+*.elf
+*.nacp
+
+# Archives (may contain game files)
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+
+# Logs and dumps
+*.log
+import*.txt
+export*.txt
+run*.txt
+*-log.txt
+crash_reports/
+
+# Godot cache / import state
+.godot/
+.import/
+*.import
+export.cfg
+export_credentials.cfg
+*.translation
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
