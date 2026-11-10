@@ -35,7 +35,10 @@ sdmc:/atmosphere/crash_reports/            — если есть
 
 - В начале — реальный путь `user://` и список файлов с размерами (видно,
   есть ли `game.sav`).
-- Каждые 2 секунды — `pulso: quadro=... cena=... objetos=... video=...`.
+- `pulso: quadro=... cena=... objetos=... video=...` — **только если в `dados/`
+  есть файл `pulso`**. Пульс пишет на карту каждые 2 секунды, поэтому по
+  умолчанию выключен (иначе он сам даёт микро-фризы в меню). Для диагностики
+  вылета создайте пустой файл `dados/pulso`.
 - `save: direto ... erro=0` / `save: copia ... erro=0` — сохранение прошло.
 - `gameover: ...` — шаги экрана Game Over.
 - `video: ...` — отключилось ли финальное видео.
@@ -60,6 +63,7 @@ sdmc:/atmosphere/crash_reports/            — если есть
 | `sem_audio_go` | звуки экрана Game Over |
 | `sem_transicao` | экран загрузки (прямая смена сцены) |
 | `sem_save` | запись сохранений |
+| `pulso` | наоборот, **включает** пульс раз в 2 секунды |
 
 После каждого опыта `depuracao.log` перезаписывается — скопируйте его перед
 следующим запуском.
@@ -80,6 +84,8 @@ hard crash. Test: launch, complete a level, force a Game Over (wait 10 s, Retry,
 give up), restart to verify saves, and open the mod browser.
 
 Read the log: an abruptly stopped `pulso` means a crash; a missing `pulso` but a
-running game means a hang. Empty flag files in `dados/` disable parts for A/B
-testing: `sem_animacao_go`, `sem_audio_go`, `sem_transicao`, `sem_save`.
+running game means a hang. The 2 s `pulso` is off by default (it flushes to the
+SD card and causes micro-stutters) — create an empty `dados/pulso` file to turn
+it on. Empty flag files in `dados/` disable parts for A/B testing:
+`sem_animacao_go`, `sem_audio_go`, `sem_transicao`, `sem_save`.
 Collect `depuracao.log`, `beat-banger.log` and `atmosphere/crash_reports/`.

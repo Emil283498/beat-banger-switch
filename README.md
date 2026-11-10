@@ -44,8 +44,9 @@ beat-banger-switch/
 │  ├─ BUILD.md            — сборка движка и экспорт PCK
 │  └─ PORTING-NOTES.md    — полная карта порт-правок (handoff)
 ├─ scripts/
-│  ├─ exportar-pck.ps1        — импорт + экспорт + проверка .pck
-│  ├─ converter-videos-mods.ps1 — .webm → .ogv для модов
+│  ├─ exportar-pck.ps1         — импорт + экспорт + проверка .pck
+│  ├─ converter-videos-mods.ps1 — .webm → .ogv для модов (720p/30)
+│  ├─ otimizar-videos-switch.ps1 — видео игры → 720p/30 (с бэкапом)
 │  └─ wsl/
 │     ├─ build-godot.sh       — сборка движка (scons)
 │     ├─ finalizar.sh         — упаковка .nro
@@ -82,11 +83,29 @@ beat-banger-switch/
   (`network/tls/certificate_bundle_override`). Нужны интернет и **верные часы**
   на консоли.
 
+## Производительность (видео и меню)
+
+Theora декодируется на CPU в главном потоке, поэтому 1080p60 видео «съедало»
+кадры и меню дёргалось. Перед экспортом PCK прогоните видео через:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\otimizar-videos-switch.ps1
+```
+
+Скрипт делает `assets/video` и `data` 720p / максимум 30 fps (оригиналы
+бэкапятся в `backups\videos-1080p\`, уже подходящие файлы пропускаются).
+
+В порте также: разрешение на Switch всегда 1280×720, vsync включён,
+`Engine.max_fps = 60`, убран `filter_linear_mipmap` из шейдера хроматической
+аберрации, attract-ролики грузятся по одному (`load()` вместо четырёх
+`preload`). Подробный разбор и цифры — [`docs/PORTING-NOTES.md`](docs/PORTING-NOTES.md), раздел 19.
+
 ## Диагностика
 
 Рядом с `.nro`:
 - `beat-banger.log` — обычный лог;
-- `dados/depuracao.log` — пошаговая трассировка (обновляется каждые 2 с);
+- `dados/depuracao.log` — пошаговая трассировка (пульс раз в 2 с включается
+  только если в `dados/` есть файл `pulso`);
 - `dados/mesa_cache/` — кэш шейдеров (можно удалять).
 
 Вылеты: `sdmc:/atmosphere/crash_reports/`.

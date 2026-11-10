@@ -7,7 +7,7 @@
     VP8/VP9 decoder, so mod videos must be .ogv.
 
     For every X.webm under the mods folder this script:
-      1. creates X.ogv next to it (libtheora, 720p, no audio);
+      1. creates X.ogv next to it (libtheora, 720p, max 30 fps, no audio);
       2. rewrites "X.webm" -> "X.ogv" in the .cfg files of the SAME mod folder.
 
     The original .webm is kept unless -ApagarWebm is passed.
@@ -17,6 +17,13 @@
 
 .PARAMETER Ffmpeg
     Path to ffmpeg.exe. Default: C:\ffmpeg\bin\ffmpeg.exe
+
+.PARAMETER Ffprobe
+    Path to ffprobe.exe. Default: C:\ffmpeg\bin\ffprobe.exe
+
+.PARAMETER MaxFps
+    Framerate cap for the converted video. Default: 30 (the Switch decodes
+    Theora on the CPU, so 60 fps sources stutter). Use 0 to disable the cap.
 
 .PARAMETER Forcar
     Re-convert even if the .ogv is newer than the .webm.
@@ -35,6 +42,8 @@
 param(
     [string]$Pasta = (Join-Path $PSScriptRoot "..\mods"),
     [string]$Ffmpeg = "C:\ffmpeg\bin\ffmpeg.exe",
+    [string]$Ffprobe = "C:\ffmpeg\bin\ffprobe.exe",
+    [int]$MaxFps = 30,
     [switch]$Forcar,
     [switch]$ApagarWebm,
     [switch]$SemReescreverConfig
@@ -43,6 +52,20 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Info($msg, $cor = "White") { Write-Host $msg -ForegroundColor $cor }
+
+function Get-VideoFps([string]$path) {
+    if (-not (Test-Path -LiteralPath $Ffprobe)) { return 0.0 }
+    $csv = & $Ffprobe -v error -select_streams v:0 -show_entries "stream=r_frame_rate" -of "csv=p=0" $path
+    if (-not $csv) { return 0.0 }
+    $raw = ($csv | Out-String).Trim()
+    if ($raw -match "^(\d+)/(\d+)$") {
+        $den = [double]$matches[2]
+        if ($den -gt 0) { return [double]$matches[1] / $den }
+    }
+    $parsed = 0.0
+    if ([double]::TryParse($raw, [ref]$parsed)) { return $parsed }
+    return 0.0
+}
 
 Info "=== Beat Banger - mod video converter (webm -> ogv) ===" Cyan
 Info "Mods folder : $Pasta"
@@ -87,11 +110,19 @@ foreach ($w in $webms) {
 
     Info ("[{0}/{1}] Converting: {2}" -f $i, $webms.Count, $w.FullName) Cyan
 
+    # 60 fps sources stutter on the console: Theora is decoded on the CPU.
+    $vf = "scale=-2:720:flags=lanczos"
+    $fpsOrigem = Get-VideoFps $w.FullName
+    if ($MaxFps -gt 0 -and $fpsOrigem -gt $MaxFps) {
+        $vf = "$vf,fps=$MaxFps"
+        Info ("    {0:0.##} fps -> {1} fps" -f $fpsOrigem, $MaxFps) DarkGray
+    }
+
     $ffArgs = @(
         "-hide_banner", "-loglevel", "error", "-y",
         "-i", $w.FullName,
         "-map", "0:v:0",
-        "-vf", "scale=-2:720:flags=lanczos",
+        "-vf", $vf,
         "-pix_fmt", "yuv420p",
         "-c:v", "libtheora",
         "-q:v", "8",

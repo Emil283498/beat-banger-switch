@@ -91,6 +91,16 @@ bash scripts/wsl/verificar-nro.sh ./beat-banger.nro
 
 ## 5. Экспорт PCK
 
+Сначала (если видео игры ещё 1080p) прогоните перекодировщик — иначе на консоли
+будут фризы, подробности в [PORTING-NOTES.md](PORTING-NOTES.md), раздел 19:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\otimizar-videos-switch.ps1 `
+    -Game .\game -Data .\out\beat-banger\data
+```
+
+Затем экспорт:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\exportar-pck.ps1 `
     -Projeto .\game -Destino .\out\beat-banger.pck `
@@ -103,13 +113,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\exportar-pck.ps1 `
 2. `godot --headless --path <projeto> --export-pack <preset> <tmp>.pck`;
 3. проверяет индекс PCK:
    - нет записей `data/`;
-   - есть `cacert.crt`, если он есть в проекте.
+   - есть `cacert.crt`, если он есть в проекте;
+   - есть `assets/video/*.ogv` (видео attract грузятся в рантайме через
+     `load()`, их держит в PCK `include_filter="*.ogv"`).
 
 Тонкости:
 
 - временный путь **обязан** заканчиваться на `.pck`;
 - пресет экспорта: `platform="Linux"`, `custom_features="switch"`,
-  `export_filter="all_resources"`, `include_filter="*.crt"`,
+  `export_filter="all_resources"`, `include_filter="*.crt,*.ogv"`,
   `exclude_filter="data/*, data/**/*"`,
   `binary_format/embed_pck=false`, `binary_format/architecture="arm64"`;
 - предупреждения `UID duplicate detected` и `Unrecognized UID` безобидны.
@@ -149,6 +161,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\exportar-pck.ps1 `
 Build the engine in WSL1/Linux with devkitPro + scons
 (`scripts/wsl/build-godot.sh`, ~1h45m, `lto=none -j2`), package it with
 `scripts/wsl/finalizar.sh`, and export the PCK with
-`scripts/exportar-pck.ps1`. Keep `module_theora_enabled=True`,
-`module_mbedtls_enabled=True`, `module_websocket_enabled=False`,
-`builtin_certs=False`. The PCK must exclude `data/` and include `cacert.crt`.
+`scripts/exportar-pck.ps1`. Run `scripts/otimizar-videos-switch.ps1` before
+exporting so videos are 720p/30 (see PORTING-NOTES section 19). Keep
+`module_theora_enabled=True`, `module_mbedtls_enabled=True`,
+`module_websocket_enabled=False`, `builtin_certs=False`. The PCK must exclude
+`data/` and include `cacert.crt` and `assets/video/*.ogv`.

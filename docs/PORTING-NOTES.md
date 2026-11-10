@@ -24,7 +24,7 @@
 ## 0. TL;DR для следующего AI
 
 1. Порт уже собран: движок Godot 4.7.2 → `beat-banger.nro` (66 118 762 Б),
-   ресурсы → `beat-banger.pck` (716 213 584 Б на 09.11.2026 14:49).
+   ресурсы → `beat-banger.pck` (392 382 912 Б, 10.11.2026 — видео 720p/30).
 2. Игра запускается на Mariko (V2/Lite/OLED) под Atmosphère **только в титульном
    режиме** (зажать R при запуске любой игры → hbmenu).
 3. Сохранения, моды и HTTPS-онлайн уже пропатчены в GDScript; движок для этого
@@ -127,7 +127,7 @@ homebrew (`.nro`, Atmosphère, Mariko) и сделать рабочими:
 │
 ├─ out\beat-banger\switch\beat-banger\   ← ГОТОВАЯ СБОРКА ДЛЯ SD
 │  ├─ beat-banger.nro            ← движок + иконка/NACP (66 118 762 Б)
-│  ├─ beat-banger.pck            ← ресурсы/код (716 213 584 Б)
+│  ├─ beat-banger.pck            ← ресурсы/код (392 382 912 Б)
 │  ├─ data\                      ← ресурсы Steam-версии (~520 МБ, НЕ в .pck)
 │  └─ dados\                     ← сохранения/настройки (создаёт игра; не трогать)
 │
@@ -283,12 +283,13 @@ powershell -ExecutionPolicy Bypass -File <project root>\exportar-pck.ps1
 - **Пути в индексе хранятся без `res://`**
   (`pck_packer.cpp`: `trim_prefix("res://")`).
 
-Текущий PCK (09.11.2026 14:49:16):
+Текущий PCK (10.11.2026, после перекодирования видео в 720p/30):
 
-- размер `716 213 584` Б;
+- размер `392 382 912` Б (374,2 МиБ);
 - записей в индексе `3183`;
 - `cacert.crt` присутствует;
 - записей `data/` нет;
+- 9 файлов `assets/video/*.ogv` (attract-ролики грузятся в рантайме);
 - в `project.binary` есть
   `network/tls/certificate_bundle_override = res://cacert.crt`.
 
@@ -803,8 +804,11 @@ wsl.exe -d Ubuntu -u root -- ls -l <godot source>/bin/
 - mbedTLS: **включён**, `builtin_certs=False`, CA через `res://cacert.crt`.
 - `user://` = `<папка .nro>/dados`.
 - `data\` = `<папка .nro>/data` (~520 МБ, вне PCK).
-- PCK: 716 213 584 Б, индекс 3183, пути в индексе без `res://`.
+- PCK: 392 382 912 Б (374,2 МиБ), индекс 3183, пути в индексе без `res://`.
 - NRO: 66 118 762 Б, NACP «Beat Banger» / «homebrew» / «1.0.0».
+- Switch: 1280×720, vsync включён, `Engine.max_fps = 60` (принудительно в
+  `SettingsManager.set_resolution/set_vsync/set_fps`).
+- Видео на Switch: 720p, максимум 30 fps (скрипт `otimizar-videos-switch.ps1`).
 - `.nro` и `.pck` независимы (`embed_pck=false`).
 - Моды: `<nro dir>/dados/mods`.
 - Сейв: `game.sav`, бэкапы `game.sav.bak1..3`.
@@ -818,6 +822,9 @@ wsl.exe -d Ubuntu -u root -- ls -l <godot source>/bin/
 
 ## 18. Что делать дальше (по приоритету)
 
+0. Если обновились видео игры или `data\` — прогнать
+   `otimizar-videos-switch.ps1` (720p/30) и переэкспортировать PCK, иначе
+   вернутся фризы (раздел 19).
 1. Передать пользователю **только новый `beat-banger.pck`** (и инструкции),
    `dados\` не трогать.
 2. Получить логи после теста: успешное завершение уровня + Game Over.
@@ -836,7 +843,105 @@ wsl.exe -d Ubuntu -u root -- ls -l <godot source>/bin/
 
 ---
 
-## 19. Правовая заметка
+## 19. Производительность: видео и меню на Switch
+
+### 19.1. Почему тормозило
+
+Theora в Godot декодируется **на CPU в главном потоке**:
+`VideoStreamPlaybackTheora::update()` → `video_write()` → конвертация YUV→RGBA
+(`yuv420_2_rgb8888`) → `texture->update()` (полная загрузка кадра в GPU).
+Стоимость примерно равна `ширина × высота × fps`:
+
+| источник | было | стало |
+|---|---|---|
+| фон главного меню (3 ролика) | 1920×1080 @60 → 124 Мпикс/с | 1280×720 @30 → 27,6 Мпикс/с |
+| attract-ролики (4) | 1920×1080 @30 → 62 Мпикс/с | 1280×720 @30 → 27,6 Мпикс/с |
+| заставки | 1920×1080 @60 → 124 Мпикс/с | 1280×720 @30 → 27,6 Мпикс/с |
+
+То есть нагрузка на декодер упала в 2,25–4,5 раза. Видео в `data\` уже было
+720p и ≤30 fps, кроме двух файлов `bb_vol_2\cathy_e2\video\*ClimaxBG.ogv`
+(1080p) — их тоже перекодировали.
+
+Дополнительные причины (не связанные с видео):
+
+1. `SettingsManager.set_resolution()` применял сохранённое разрешение
+   (по умолчанию **1920×1080**) и на Switch → корневой viewport рисовался в
+   1080p, а потом ужимался в поверхность 1280×720: лишние 2,25× пикселей на
+   каждый кадр, во всех меню и в игре.
+2. `window/vsync/vsync_mode=0` в `project.godot`, а `Engine.max_fps` вообще
+   не выставлялся (безлимит): игра рисовала больше кадров, чем успевала, и
+   отбирала CPU у декодера.
+3. Шейдер хроматической аберрации (`src/shaders/chromatic_abberation.gdshader`)
+   объявлял `hint_screen_texture, filter_linear_mipmap`, хотя читал LOD 0 —
+   каждый кадр генерировалась mip-цепочка полного экрана. Шейдер вставлен в
+   `main_menu`, `game`, `loading`, `cutscene`, `extras`, `level_select`,
+   `scene_viewer`, `sound_test`.
+4. `attract_screen.gd` держал **четыре `preload`** роликов по 70–120 МБ —
+   сотни мегабайт RAM и многосекундная пауза при входе в экран.
+5. `SceneManager` писал «пульс» в `user://depuracao.log` каждые 2 секунды с
+   `flush()` — на карте памяти это микро-фриз каждые 2 секунды.
+
+### 19.2. Что сделано
+
+- **Видео** перекодированы на ПК скриптом `otimizar-videos-switch.ps1`:
+  720p, максимум 30 fps, libtheora (`-q:v 6` для `attract_*`, `-q:v 7` для
+  остальных), Vorbis `-q:a 4`. Оригиналы складываются в
+  `backups\videos-1080p\<game-assets|data>\...`.
+  Скрипт идемпотентен: файлы, которые уже ≤720p и ≤30 fps, пропускаются.
+  Запуск:
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File D:\BeatBangerSwitch\otimizar-videos-switch.ps1
+  ```
+
+  Проверка:
+
+  ```powershell
+  C:\ffmpeg\bin\ffprobe.exe -v error -select_streams v:0 `
+      -show_entries stream=width,height,r_frame_rate -of csv=p=0 <файл.ogv>
+  ```
+
+- `SettingsManager.gd`:
+  - добавлен `is_switch()`;
+  - `set_resolution()` на Switch всегда ставит **1280×720**;
+  - `set_vsync()` на Switch всегда включает vsync;
+  - `set_fps()` на Switch ставит `Engine.max_fps = 60`, и теперь он
+    **вызывается** в `_ready()` (раньше функция существовала, но её никто не
+    вызывал);
+  - заодно исправлен `set_chromatic_abberation()`: он читал
+    `reduce_motion` вместо `chromatic_abberation`.
+- `project.godot`: `window/vsync/vsync_mode=1`.
+- `chromatic_abberation.gdshader`: `filter_linear_mipmap` → `filter_linear`.
+- `attract_screen.gd`: вместо `preload` — список путей и `load()` по одному
+  ролику; предыдущий поток обнуляется перед загрузкой следующего.
+- `SceneManager.gd`: «пульс» включается только если в `dados\` есть файл
+  `pulso` (диагностика вылетов — по требованию).
+- `converter-videos-mods.ps1`: моды тоже ограничиваются 720p и 30 fps
+  (параметр `-MaxFps`, `0` отключает ограничение).
+- `export_presets.cfg`: `include_filter="*.crt,*.ogv"` — видео теперь грузятся
+  в рантайме через `load()`, и экспортёр обязан их паковать.
+  `exportar-pck.ps1` проверяет, что в PCK лежат 9 файлов `assets/video/*.ogv`.
+
+### 19.3. Что ожидать
+
+- Меню и переходы перестают «дёргаться»: 60 fps с vsync, без лишних 1080p
+  пикселей и без mip-генерации каждый кадр.
+- Видео (меню, attract, заставки, финальные ролики) играет ровно; на сложных
+  сценах возможны редкие пропуски кадров — это CPU-декодер, а не баг.
+- Экран attract теперь появляется без многосекундной паузы.
+
+### 19.4. Что можно сделать ещё (если понадобится)
+
+1. Декодировать Theora в отдельном потоке (правка `modules/theora/video_stream_theora.cpp`
+   + `VideoStreamPlayer`) — самый большой, но и самый рискованный выигрыш.
+2. Отключить хроматическую аберрацию на Switch (убирает копию экрана и 3
+   выборки на кадр): в `SettingsManager.set_chromatic_abberation()` принудительно
+   `false`. Меняет внешний вид (виньетка), поэтому по умолчанию не включено.
+3. Понизить фон меню до 960×540 — на 720p-экране разница почти незаметна.
+
+---
+
+## 20. Правовая заметка
 
 Порт неофициальный. Игровые ресурсы (`data\`, `beat-banger.pck`, музыка, видео,
 изображения) принадлежат правообладателям *Beat Banger* (bun fun). Не

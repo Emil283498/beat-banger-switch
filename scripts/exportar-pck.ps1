@@ -72,6 +72,7 @@ function Test-PckIndex {
         $pos = 4
         $hasCert = $false
         $hasData = $false
+        $videoCount = 0
 
         for ($i = 0; $i -lt $count; $i++) {
             $pathLen = [BitConverter]::ToUInt32($buf, $pos)
@@ -80,6 +81,7 @@ function Test-PckIndex {
             $pos += $pathLen + 36   # offset(8) + size(8) + md5(16) + flags(4)
             if ($entry -eq "cacert.crt") { $hasCert = $true }
             if ($entry.StartsWith("data/")) { $hasData = $true }
+            if ($entry.StartsWith("assets/video/") -and $entry.EndsWith(".ogv")) { $videoCount++ }
         }
 
         Write-Host ("   header: file_base={0}, dir_offset={1}, entries={2}" -f `
@@ -87,6 +89,13 @@ function Test-PckIndex {
 
         if ($hasData) { throw "PCK contains data/ entries - game assets must stay outside the PCK" }
         Write-Host ("   OK: no data/ entries ({0} files)" -f $count)
+
+        # attract_screen.gd loads its videos at runtime (load() instead of preload()),
+        # so the exporter must keep them because of include_filter="*.crt,*.ogv".
+        Write-Host ("   assets/video/*.ogv in PCK: {0}" -f $videoCount)
+        if ($videoCount -eq 0) {
+            throw "PCK has no assets/video/*.ogv - check include_filter in export_presets.cfg"
+        }
 
         if ($ExpectCert) {
             if (-not $hasCert) { throw "PCK is missing cacert.crt (HTTPS will not work)" }
@@ -151,3 +160,7 @@ Move-Item -LiteralPath $tmp -Destination $destinoPath
 
 $info = Get-Item -LiteralPath $destinoPath
 Write-Host ("OK: {0} ({1:N0} bytes, {2} entries)" -f $destinoPath, $info.Length, $files) -ForegroundColor Green
+
+# Godot writes warnings/errors to stderr even on success; PowerShell 5.1 may leave
+# $LASTEXITCODE = 1 and turn a successful run into a non-zero process exit code.
+exit 0

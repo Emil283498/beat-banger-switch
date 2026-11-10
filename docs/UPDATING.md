@@ -67,13 +67,29 @@ powershell -ExecutionPolicy Bypass -File .\scripts\converter-videos-mods.ps1 `
 ```
 
 Скрипт создаёт рядом с каждым `X.webm` файл `X.ogv` и правит ссылки в
-настройках этого мода.
+настройках этого мода. Видео мода ограничивается 720p и 30 fps (`-MaxFps`,
+`0` отключает ограничение) — иначе Switch не успевает декодировать.
 
 Флаги:
 
 - `-Forcar` — переконвертировать, даже если `.ogv` свежее;
 - `-ApagarWebm` — удалить `.webm` после успешной конвертации;
 - `-SemReescreverConfig` — только конвертировать, конфиги не трогать.
+
+## Сценарий E. Видео игры стало 1080p (фризы вернулись)
+
+Theora декодируется на CPU Switch, поэтому 1080p (особенно 60 fps) вызывает
+фризы. Пережмите видео игры:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\otimizar-videos-switch.ps1 `
+    -Game .\game -Data .\out\beat-banger\data
+```
+
+Скрипт делает 720p / максимум 30 fps, оригиналы складывает в
+`backups/videos-1080p/`, уже подходящие файлы пропускает. После этого нужен
+новый `.pck` (сценарий B) **и** новая папка `data/` на карте — видео лежат
+в обоих местах. `dados/` не трогать.
 
 ## Про сохранения
 
@@ -103,3 +119,7 @@ Three independent layers: `data/` (copy), `beat-banger.pck` (re-export with
 engine/port changes). Never delete or overwrite `dados/` — it holds saves
 (`game.sav` + `.bak1..3`), settings and mods. To move progress, copy the whole
 `dados/` folder.
+
+If the game videos are 1080p again, run
+`scripts/otimizar-videos-switch.ps1` (720p / max 30 fps), then re-export the PCK
+and copy `data/` again.
